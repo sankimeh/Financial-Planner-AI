@@ -3,10 +3,12 @@ import requests
 from bs4 import BeautifulSoup
 import fitz  # PyMuPDF
 import os
+import datetime
 
 from langchain_community.vectorstores import FAISS
 from langchain.schema import Document
 from langchain_community.embeddings import HuggingFaceEmbeddings
+from headline_sentiment import get_sentiment_documents
 
 # -----------------------------
 # 1. PDF & Article Scraper
@@ -61,7 +63,61 @@ def fetch_stock_data(tickers):
     return docs
 
 # -----------------------------
-# 3. Build & Save Vector Store
+# 3. Market Sentiment Scrapers
+# -----------------------------
+
+def scrape_aaii_sentiment():
+    url = "https://www.aaii.com/sentimentsurvey"
+    docs = []
+    try:
+        response = requests.get(url, timeout=10)
+        soup = BeautifulSoup(response.text, "html.parser")
+        result_block = soup.find("div", class_="sentiment-survey-results")
+        if not result_block:
+            raise Exception("Sentiment data not found on AAII page")
+        text = result_block.get_text("\n", strip=True)
+        docs.append(Document(page_content=text, metadata={"source": url, "type": "sentiment", "name": "AAII"}))
+    except Exception as e:
+        print(f"[AAII Error] {e}")
+    return docs
+
+def scrape_sffed_sentiment():
+    url = "https://www.frbsf.org/research-and-insights/data-and-indicators/daily-news-sentiment-index/"
+    docs = []
+    try:
+        response = requests.get(url, timeout=10)
+        soup = BeautifulSoup(response.text, "html.parser")
+        paragraph = soup.find("div", class_="body-text").get_text("\n", strip=True)
+        date_str = datetime.datetime.now().strftime("%Y-%m-%d")
+        docs.append(Document(page_content=paragraph, metadata={"source": url, "type": "sentiment", "name": "SF Fed", "date": date_str}))
+    except Exception as e:
+        print(f"[SF Fed Error] {e}")
+    return docs
+
+def scrape_sumgrowth_sentiment():
+    url = "https://www.sumgrowth.com/InfoPages/Market-Sentiment.aspx"
+    docs = []
+    try:
+        response = requests.get(url, timeout=10)
+        soup = BeautifulSoup(response.text, "html.parser")
+        content_block = soup.find("div", id="content")
+        summary = content_block.get_text("\n", strip=True) if content_block else ""
+        docs.append(Document(page_content=summary, metadata={"source": url, "type": "sentiment", "name": "SumGrowth"}))
+    except Exception as e:
+        print(f"[SumGrowth Error] {e}")
+    return docs
+
+def collect_sentiment_documents():
+    print("📊 Collecting sentiment data...")
+    docs = []
+    docs.extend(scrape_aaii_sentiment())
+    docs.extend(scrape_sffed_sentiment())
+    docs.extend(scrape_sumgrowth_sentiment())
+    print(f"✅ Sentiment documents collected: {len(docs)}")
+    return docs
+
+# -----------------------------
+# 4. Build & Save Vector Store
 # -----------------------------
 
 def build_vector_store(documents, index_dir="faiss_index"):
@@ -72,13 +128,12 @@ def build_vector_store(documents, index_dir="faiss_index"):
     print(f"✅ Vector store saved to {index_dir}/")
 
 # -----------------------------
-# 4. Entry Point
+# 5. Entry Point
 # -----------------------------
 
 def build_financial_rag():
     print("🚀 Starting RAG index creation...")
 
-    # Sources (expand freely)
     article_urls = [
         "https://www.reuters.com/markets/global-markets-recession-graphic-2025-05-08/",
         "https://www.investopedia.com/what-will-it-take-for-stocks-to-keep-rising-what-experts-say-11729371",
@@ -90,14 +145,32 @@ def build_financial_rag():
     ]
 
     tickers = [
-        # Stocks
-        "AAPL", "GOOGL", "MSFT", "TSLA", "AMZN", "JNJ", "PFE", "JPM", "WFC",
-        # ETFs
-        "SPY", "VTI", "QQQ", "XLK", "XLF", "EFA", "EEM",
+        # Mega cap tech
+        "AAPL", "GOOGL", "MSFT", "AMZN", "TSLA", "META", "NVDA", "NFLX", "ADBE", "CRM",
+
+        # Large US financials
+        "JPM", "WFC", "BAC", "GS", "MS", "AXP", "C", "USB", "BK", "BLK",
+
+        # Healthcare
+        "JNJ", "PFE", "MRK", "ABBV", "UNH", "CVS", "LLY",
+
+        # ETFs (broad index)
+        "SPY", "VTI", "QQQ", "DIA", "IWM", "VOO",
+
+        # ETFs (sector)
+        "XLK", "XLF", "XLE", "XLY", "XLI", "XLV", "XLC", "XLU", "XLB", "XLRE",
+
+        # International & emerging
+        "EFA", "EEM", "VEA", "VWO", "FXI",
+
         # Bonds
-        "TLT", "IEF", "LQD", "HYG",
-        # Gold/Silver
-        "GLD", "IAU", "SLV"
+        "TLT", "IEF", "SHY", "LQD", "HYG", "AGG", "BND",
+
+        # Commodities & metals
+        "GLD", "IAU", "SLV", "DBC", "DBA",
+
+        # Crypto-related (optional)
+        "COIN", "MSTR", "RIOT"
     ]
 
     documents = []
@@ -109,6 +182,8 @@ def build_financial_rag():
         documents.extend(scrape_pdf(url))
 
     documents.extend(fetch_stock_data(tickers))
+    documents.extend(collect_sentiment_documents())
+    documents.extend(get_sentiment_documents())
 
     print(f"🧾 Total documents collected: {len(documents)}")
 
