@@ -16,3 +16,7 @@ class User(BaseModel):
     loans: List[Loan]
     goals: List[Goal]
     risk_profile: str  # 'conservative', 'balanced', 'aggressive'
+
+    @property
+    def monthly_surplus(self) -> float:
+        return self.income - self.expenses
