@@ -8,7 +8,9 @@ import datetime
 from langchain_community.vectorstores import FAISS
 from langchain.schema import Document
 from langchain_community.embeddings import HuggingFaceEmbeddings
-from headline_sentiment import get_sentiment_documents
+
+from app.llm.headline_sentiment import get_sentiment_documents
+
 
 # -----------------------------
 # 1. PDF & Article Scraper

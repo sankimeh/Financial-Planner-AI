@@ -6,6 +6,7 @@ from langchain_community.embeddings import HuggingFaceEmbeddings
 import requests
 
 from app.llm.rag_recommender import build_financial_rag
+from app.models.user import User
 
 
 # Load the vector store
@@ -18,24 +19,87 @@ def load_vector_store(index_dir="faiss_index"):
 
 
 # Query Ollama with context
-def query_ollama_with_context(user_query: str, k: int = 5):
+def query_ollama_for_portfolio(user_data: User, allocation: dict, k: int = 5, return_dict: bool = True):
+    """
+    Generate structured portfolio recommendation based on user profile, allocation, and market context.
+    """
+
+    # Load market context
     vectorstore = load_vector_store()
-    results = vectorstore.similarity_search(user_query, k=k)
+    results = vectorstore.similarity_search("market outlook and stock opportunities", k=k)
     context_chunks = "\n\n".join([doc.page_content[:2000] for doc in results])
 
-    prompt = f"""You are a financial advisor AI. Based on the documents and reports below, give a recommendation in plain English.
+    # Format loans
+    loans = "\n".join([f"   - {loan.__class__.__name__}: ${loan.amount} at {loan.interest_rate}% interest" for loan in
+                       user_data.loans])
 
-### User Query:
-{user_query}
+    # Format goals
+    goals = "\n".join(
+        [f"   - {goal.name} (${goal.target_amount} in {goal.months_to_achieve} months)" for goal in user_data.goals])
 
-### Context from reports and financial data:
-{context_chunks}
-
-Only use the context if it's helpful. Be concise but informative. Classify the recommendation as short-term, mid-term, or long-term.
+    # User summary
+    user_summary = f"""
+👤 USER PROFILE:
+- Name: {user_data.name}
+- Age: {user_data.age}, Risk Profile: {user_data.risk_profile}
+- Income: ${user_data.income:.2f}, Expenses: ${user_data.expenses:.2f}
+- Monthly Surplus: ${user_data.monthly_surplus:.2f}
+- Emergency Fund: ${user_data.emergency_fund:.2f}
+- Insurance: {', '.join(user_data.insurances)}
+- Loans:
+{loans}
+- Goals:
+{goals}
 """
 
-    print("🧠 Ollama Response:\n")
+    # Asset allocation
+    alloc_text = f"""💼 TARGET ALLOCATION:
+- Equity: {allocation['equity']}%
+- Bonds: {allocation['bonds']}%
+- Commodities: {allocation['commodities']}%
+"""
 
+    # Prompt for LLM
+    prompt = f"""
+You are a financial advisor AI.
+
+Given the following user profile and current market outlook, recommend a personalized investment portfolio.
+Stick to the asset allocation ratios and provide recommendations as structured JSON output.
+
+🔍 Include:
+- Summary (user's situation + investment philosophy)
+- Equity picks: list of tickers with name, rationale, and time horizon ([Short-Term], [Mid-Term], [Long-Term])
+- Bond picks: same as above
+- Commodity picks: same as above
+
+### USER INFO
+{user_summary}
+
+{alloc_text}
+
+### MARKET OUTLOOK
+{context_chunks}
+
+📦 RETURN OUTPUT IN JSON FORMAT AS:
+{{
+  "summary": "...",
+  "equity_picks": [
+    {{
+      "ticker": "AAPL",
+      "name": "Apple Inc.",
+      "reason": "Strong fundamentals, good cash flow",
+      "horizon": "Long-Term"
+    }},
+    ...
+  ],
+  "bond_picks": [...],
+  "commodity_picks": [...]
+}}
+
+Only return the JSON — no extra explanation.
+"""
+
+    # Send to Ollama
     response = requests.post(
         "http://localhost:11434/api/generate",
         json={
@@ -46,6 +110,7 @@ Only use the context if it's helpful. Be concise but informative. Classify the r
         stream=True
     )
 
+    # Collect streamed output
     full_output = ""
     for chunk in response.iter_lines():
         if chunk:
@@ -53,10 +118,17 @@ Only use the context if it's helpful. Be concise but informative. Classify the r
                 data = json.loads(chunk.decode("utf-8"))
                 full_output += data.get("response", "")
             except json.JSONDecodeError:
-                continue  # Ignore malformed chunks
+                continue
 
-    print(full_output.strip())  # Clean and print only the model's final text
+    # Optional JSON parsing
+    if return_dict:
+        try:
+            json_start = full_output.find('{')
+            json_output = json.loads(full_output[json_start:])
+            return json_output
+        except Exception as e:
+            print("⚠️ Error parsing JSON response:", e)
+            return {"error": "Failed to parse LLM output", "raw": full_output}
+    else:
+        return full_output.strip()
 
-if __name__ == "__main__":
-    user_input = input("Enter your investment goal or risk profile query: ")
-    query_ollama_with_context(user_input)
