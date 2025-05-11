@@ -4,9 +4,9 @@ from bs4 import BeautifulSoup
 import fitz  # PyMuPDF
 import os
 
-from langchain.vectorstores import FAISS
+from langchain_community.vectorstores import FAISS
 from langchain.schema import Document
-from langchain.embeddings import HuggingFaceEmbeddings
+from langchain_community.embeddings import HuggingFaceEmbeddings
 
 # -----------------------------
 # 1. PDF & Article Scraper
