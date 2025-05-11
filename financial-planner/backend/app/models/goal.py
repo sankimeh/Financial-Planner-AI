@@ -11,9 +11,8 @@ class GoalType(str, Enum):
 
 class Goal(BaseModel):
     name: str
-    goal_type: GoalType
     target_amount: float
-    current_savings: float
     months_to_achieve: int
-    priority_level: int  # Priority of the goal (e.g., 1 for high priority)
-    description: Optional[str] = None
+    current_savings: float
+    sip: float  # Monthly SIP
+    priority: int  # 1 = highest
