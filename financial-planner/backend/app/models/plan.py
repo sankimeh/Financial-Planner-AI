@@ -1,10 +1,12 @@
 from pydantic import BaseModel
 from typing import List, Optional
 
+
 class AssetAllocation(BaseModel):
     stocks_percentage: float
     bonds_percentage: float
     gold_percentage: float
+
 
 class InvestmentRecommendation(BaseModel):
     asset_class: str
@@ -13,6 +15,7 @@ class InvestmentRecommendation(BaseModel):
     risk_level: str
     expected_return: float
     rationale: str  # Reason behind the recommendation
+
 
 class FinancialPlan(BaseModel):
     user_id: str

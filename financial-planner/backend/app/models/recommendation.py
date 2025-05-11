@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from typing import List
 
+
 class RAGRecommendation(BaseModel):
     stock_ticker: str
     bond_ticker: str
@@ -10,6 +11,7 @@ class RAGRecommendation(BaseModel):
     gold_analysis: str
     source: str
     confidence_score: float  # Confidence level in recommendation
+
 
 class FinalRecommendation(BaseModel):
     user_id: str
