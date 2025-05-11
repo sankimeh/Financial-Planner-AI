@@ -22,18 +22,11 @@ class GoalSuggester:
         if self.user_data.age > 30 and 'retirement' not in [goal.name.lower() for goal in self.user_data.goals]:
             suggested_goals.append("Plan for Retirement Savings")
 
-        # 4. Education Fund Suggestion (for children under 15)
-        if self.user_data.dependents > 0:
-            children = self.user_data.children or []  # Use empty list if children is None
-            for child in children:
-                if child['age'] < 15 and 'education' not in [goal.name.lower() for goal in self.user_data.goals]:
-                    suggested_goals.append(f"Set up Education Fund for {child['name']}")
-
-        # 5. Debt Repayment Suggestion
+        # 4. Debt Repayment Suggestion
         if any(loan.interest_rate > 10 for loan in self.user_data.loans):
             suggested_goals.append("Focus on High-Interest Debt Repayment")
 
-        # 6. Wealth-Building SIP Suggestion
+        # 5. Wealth-Building SIP Suggestion
         if self.user_data.monthly_surplus > 10000 and 'sip' not in [goal.name.lower() for goal in self.user_data.goals]:
             suggested_goals.append("Start Wealth-Building SIP")
 
