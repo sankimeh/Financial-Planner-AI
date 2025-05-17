@@ -1,6 +1,11 @@
 import React from "react";
-import { Box, Button, IconButton, Paper, TextField, Typography } from "@mui/material";
-import DeleteIcon from "@mui/icons-material/Delete";
+import {
+  Paper,
+  Typography,
+  FormGroup,
+  FormControlLabel,
+  Checkbox,
+} from "@mui/material";
 import styled from "@emotion/styled";
 
 const Section = styled(Paper)`
@@ -15,22 +20,54 @@ type Props = {
   onChange: (index: number, value: string) => void;
 };
 
-const InsuranceSection: React.FC<Props> = ({ insurances, onAdd, onRemove, onChange }) => (
-  <Section elevation={3}>
-    <Typography variant="h6" mb={2}>Insurances</Typography>
-    {insurances.map((insurance, index) => (
-      <Box key={index} display="flex" alignItems="center" mb={1} gap={1}>
-        <TextField
-          label={`Insurance ${index + 1}`}
-          value={insurance}
-          onChange={(e) => onChange(index, e.target.value)}
-          fullWidth
-        />
-        <IconButton onClick={() => onRemove(index)}><DeleteIcon /></IconButton>
-      </Box>
-    ))}
-    <Button onClick={onAdd}>Add Insurance</Button>
-  </Section>
-);
+const commonInsuranceOptions = [
+  "Health Insurance",
+  "Life Insurance",
+  "Auto Insurance",
+  "Homeowners/Renters Insurance",
+  "Disability Insurance",
+  "Long-term Care Insurance",
+  "Travel Insurance",
+  "Pet Insurance",
+];
+
+const InsuranceSection: React.FC<Props> = ({
+  insurances,
+  onAdd,
+  onRemove,
+  onChange,
+}) => {
+  const handleToggle = (insuranceType: string) => {
+    const index = insurances.indexOf(insuranceType);
+    if (index !== -1) {
+      onRemove(index);
+    } else {
+      onAdd();
+      onChange(insurances.length, insuranceType);
+    }
+  };
+
+  return (
+    <Section elevation={3}>
+      <Typography variant="h6" mb={2}>
+        Insurances
+      </Typography>
+      <FormGroup>
+        {commonInsuranceOptions.map((option) => (
+          <FormControlLabel
+            key={option}
+            control={
+              <Checkbox
+                checked={insurances.includes(option)}
+                onChange={() => handleToggle(option)}
+              />
+            }
+            label={option}
+          />
+        ))}
+      </FormGroup>
+    </Section>
+  );
+};
 
 export default InsuranceSection;

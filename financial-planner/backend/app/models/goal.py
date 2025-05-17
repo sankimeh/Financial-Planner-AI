@@ -15,4 +15,4 @@ class Goal(BaseModel):
     months_to_achieve: int
     current_savings: float
     sip: float  # Monthly SIP
-    priority: int
+    priority: str

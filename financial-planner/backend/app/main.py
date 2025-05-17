@@ -17,7 +17,6 @@ def analyze_user(user: User):
 
 @app.post("/suggest-goals/")
 async def suggest_goals(user_data: User):
-    # Pass the User object to GoalSuggester (not dict())
     suggester = GoalSuggester(user_data)
     suggested_goals = suggester.suggest_goals()
     return {"suggested_goals": suggested_goals}

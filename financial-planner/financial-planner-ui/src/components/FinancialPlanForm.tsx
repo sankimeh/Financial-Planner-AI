@@ -5,18 +5,57 @@ import InsuranceSection from "./InsurancesSection";
 import LoanSection from "./LoansSection";
 import GoalSection from "./GoalsSection";
 
+type Loan = {
+  type: string;
+  amount: string;
+  tenure_months: string;
+  installment: string;
+  interest_rate: string;
+};
+
+type Goal = {
+  name: string;
+  target_amount: string;
+  months_to_achieve: string;
+  current_savings: string;
+  sip: string;
+  priority: string;
+};
 
 const FinancialPlanForm: React.FC = () => {
   const [formData, setFormData] = useState({
     name: "",
     age: "",
     income: "",
+    expenses: "",
+    dependents: "",
+    emergency_fund: "",
+    risk_profile: "",
     insurances: [""],
-    loans: [{ type: "", amount: "" }],
-    goals: [{ name: "", targetAmount: "", timePeriod: "" }],
+    loans: [
+      {
+        type: "",
+        amount: "",
+        tenure_months: "",
+        installment: "",
+        interest_rate: "",
+      },
+    ] as Loan[],
+    goals: [
+      {
+        name: "",
+        target_amount: "",
+        months_to_achieve: "",
+        current_savings: "",
+        sip: "",
+        priority: "",
+      },
+    ] as Goal[],
   });
 
-  const handleInputChange = (field: string, value: string) => {
+  const [submitted, setSubmitted] = useState(false);
+
+  const handleInputChange = (field: string, value: string | number) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
@@ -26,27 +65,37 @@ const FinancialPlanForm: React.FC = () => {
     setFormData((prev) => ({ ...prev, insurances: updated }));
   };
 
-  const addInsurance = () => setFormData((prev) => ({ ...prev, insurances: [...prev.insurances, ""] }));
+  const addInsurance = () =>
+    setFormData((prev) => ({ ...prev, insurances: [...prev.insurances, ""] }));
+
   const removeInsurance = (index: number) =>
     setFormData((prev) => ({
       ...prev,
       insurances: prev.insurances.filter((_, i) => i !== index),
     }));
 
-  const handleLoanChange = (index: number, field: string, value: string) => {
+  const handleLoanChange = (index: number, field: keyof Loan, value: string) => {
     const updated = [...formData.loans];
     updated[index] = { ...updated[index], [field]: value };
     setFormData((prev) => ({ ...prev, loans: updated }));
   };
 
-  const addLoan = () => setFormData((prev) => ({ ...prev, loans: [...prev.loans, { type: "", amount: "" }] }));
+  const addLoan = () =>
+    setFormData((prev) => ({
+      ...prev,
+      loans: [
+        ...prev.loans,
+        { type: "", amount: "", tenure_months: "", installment: "", interest_rate: "" },
+      ],
+    }));
+
   const removeLoan = (index: number) =>
     setFormData((prev) => ({
       ...prev,
       loans: prev.loans.filter((_, i) => i !== index),
     }));
 
-  const handleGoalChange = (index: number, field: string, value: string) => {
+  const handleGoalChange = (index: number, field: keyof Goal, value: string) => {
     const updated = [...formData.goals];
     updated[index] = { ...updated[index], [field]: value };
     setFormData((prev) => ({ ...prev, goals: updated }));
@@ -55,7 +104,7 @@ const FinancialPlanForm: React.FC = () => {
   const addGoal = () =>
     setFormData((prev) => ({
       ...prev,
-      goals: [...prev.goals, { name: "", targetAmount: "", timePeriod: "" }],
+      goals: [...prev.goals, { name: "", target_amount: "", months_to_achieve: "", current_savings: "", sip: "", priority: "" }],
     }));
 
   const removeGoal = (index: number) =>
@@ -66,19 +115,56 @@ const FinancialPlanForm: React.FC = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Submitted data:", formData);
+
+    // Convert string numbers to numeric types for backend readiness
+    const loans = formData.loans.map((loan) => ({
+      ...loan,
+      amount: parseFloat(loan.amount) || 0,
+      tenure_months: parseInt(loan.tenure_months) || 0,
+      installment: parseFloat(loan.installment) || 0,
+      interest_rate: parseFloat(loan.interest_rate) || 0,
+    }));
+
+    const goals = formData.goals.map((goal) => ({
+      name: goal.name,
+      target_amount: parseFloat(goal.target_amount) || 0,
+      months_to_achieve: parseInt(goal.months_to_achieve) || 0,
+      current_savings: parseFloat(goal.current_savings) || 0,
+      sip: parseFloat(goal.sip) || 0,
+      priority: parseInt(goal.priority) || 0,
+    }));
+
+    const submitData = {
+      ...formData,
+      loans,
+      goals,
+    };
+
+    console.log("Submitted data:", submitData);
+    setSubmitted(true);
+
+    // TODO: send submitData to backend API
   };
 
   return (
-    <Container maxWidth="md">
-      <Typography variant="h4" gutterBottom mt={4}>
-        Financial Plan Form
+    <Container maxWidth="md" sx={{ pb: 6 }}>
+      <Typography variant="h3" gutterBottom mt={4} sx={{ fontWeight: "bold", textAlign: "center" }}>
+        💰 Your Fun Financial Planner 💸
       </Typography>
+      <Typography variant="body1" color="text.secondary" sx={{ mb: 3, textAlign: "center" }}>
+        Let's turn those numbers into your money magic! ✨
+      </Typography>
+
+
       <form onSubmit={handleSubmit}>
         <BasicInfoSection
           name={formData.name}
           age={formData.age}
           income={formData.income}
+          expenses={formData.expenses}
+          dependents={formData.dependents}
+          emergency_fund={formData.emergency_fund}
+          risk_profile={formData.risk_profile}
           onChange={handleInputChange}
         />
 
@@ -103,9 +189,9 @@ const FinancialPlanForm: React.FC = () => {
           onChange={handleGoalChange}
         />
 
-        <Box mt={4}>
-          <Button variant="contained" color="primary" type="submit">
-            Submit Plan
+        <Box mt={5} textAlign="center">
+          <Button variant="contained" color="primary" size="large" type="submit" sx={{ fontWeight: "bold", px: 5 }}>
+            🚀 Blast Off! Submit Plan
           </Button>
         </Box>
       </form>
