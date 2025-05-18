@@ -54,6 +54,7 @@ const ResultsPage = () => {
     const fetchSuggestedGoals = async () => {
       try {
         const res = await api.post('/suggest-goals/', formData);
+        fetchGoalAnalysis();
         setSuggestedGoals(res.data.suggested_goals || []);
       } catch (err) {
         console.error('Error fetching suggested goals:', err);
@@ -67,6 +68,7 @@ const ResultsPage = () => {
         const res = await api.post('/analyze', formData);
         console.log('Analysis response:', res.data);
         setGoalAnalysis(res.data || null);
+        fetchLLMPicks();
       } catch (err) {
         console.error('Error fetching analysis:', err);
       } finally {
@@ -87,8 +89,6 @@ const ResultsPage = () => {
     };
 
     fetchSuggestedGoals();
-    fetchGoalAnalysis();
-    fetchLLMPicks();
   }, [formData, navigate]);
 
   const renderLoader = () => (
