@@ -1,7 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import api from '../api/axios';
-import { Typography, CircularProgress, Grid, Box } from '@mui/material';
+import {
+  Typography,
+  CircularProgress,
+  Grid,
+  Box,
+  Divider,
+  Fade,
+  Paper,
+} from '@mui/material';
 
 import GoalAnalysisCard from './GoalAnalysisCard';
 import GoalSuggestions from './SuggestedGoals';
@@ -73,34 +81,51 @@ const ResultsPage = () => {
   );
 
   return (
-    <Box p={4}>
-      <Typography variant="h4" gutterBottom>
-        Personalized Financial Plan
+    <Box p={{ xs: 2, sm: 4 }} bgcolor="#f9f9f9" minHeight="100vh">
+      <Typography variant="h4" gutterBottom fontWeight="bold">
+        🎯 Personalized Financial Plan
       </Typography>
 
-      <Grid container spacing={3}>
-        <Grid item xs={12} md={4}>
-          <GoalSuggestions
-            suggestedGoals={suggestedGoals}
-            loading={loadingSuggestions}
-            renderLoader={renderLoader}
-          />
+      <Divider sx={{ mb: 3 }} />
+
+      <Grid container spacing={4} direction="column">
+        {/* Suggested Goals */}
+        <Grid item xs={12}>
+          <Fade in timeout={600}>
+            <Paper elevation={4} sx={{ borderRadius: 3, p: 2, height: '100%' }}>
+              <GoalSuggestions
+                suggestedGoals={suggestedGoals}
+                loading={loadingSuggestions}
+                renderLoader={renderLoader}
+              />
+            </Paper>
+          </Fade>
         </Grid>
 
-        <Grid item xs={12} md={4}>
-          <GoalAnalysisCard
-            analysis={goalAnalysis}
-            loading={loadingAnalysis}
-            renderLoader={renderLoader}
-          />
+        {/* Goal Analysis */}
+        <Grid item xs={12}>
+          <Fade in timeout={800}>
+            <Paper elevation={4} sx={{ borderRadius: 3, p: 2, height: '100%' }}>
+              <GoalAnalysisCard
+                analysis={goalAnalysis}
+                loading={loadingAnalysis}
+                renderLoader={renderLoader}
+              />
+            </Paper>
+          </Fade>
         </Grid>
 
-        <Grid item xs={12} md={4}>
-          <LLMPicksCard
-            picks={llmPicks}
-            loading={loadingLLM}
-            renderLoader={renderLoader}
-          />
+        {/* LLM Picks */}
+        <Grid item xs={12}>
+          <Fade in timeout={1000}>
+            <Paper elevation={4} sx={{ borderRadius: 3, p: 2, height: '100%' }}>
+              <LLMPicksCard
+                picks={llmPicks}
+                loading={loadingLLM}
+                renderLoader={renderLoader}
+              />
+            </Paper>
+          </Fade>
         </Grid>
       </Grid>
     </Box>
