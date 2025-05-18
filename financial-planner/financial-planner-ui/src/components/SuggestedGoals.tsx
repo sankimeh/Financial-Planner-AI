@@ -44,7 +44,7 @@ const getIconForGoal = (goal: string) => {
 };
 
 const GoalSuggestions: React.FC<Props> = ({ suggestedGoals, loading, renderLoader }) => (
-  <Card elevation={3} sx={{ borderRadius: 3, p: 2, width: '100%' }}>
+  <Card elevation={3} sx={{ borderRadius: 3, p: 2, width: '98%' }}>
     <CardContent>
       <Typography variant="h6" gutterBottom>
         Suggested Goals
@@ -62,7 +62,7 @@ const GoalSuggestions: React.FC<Props> = ({ suggestedGoals, loading, renderLoade
           sx={{
             display: 'flex',
             flexWrap: 'wrap',
-            gap: 2, // spacing between items
+            gap: 2,
           }}
         >
           {suggestedGoals.map((goal, index) => {
@@ -72,7 +72,7 @@ const GoalSuggestions: React.FC<Props> = ({ suggestedGoals, loading, renderLoade
                 key={index}
                 sx={{
                   display: 'flex',
-                  alignItems: 'center',
+                  alignItems: 'flex-start',
                   borderRadius: 2,
                   bgcolor: 'background.paper',
                   boxShadow: 1,
@@ -82,8 +82,8 @@ const GoalSuggestions: React.FC<Props> = ({ suggestedGoals, loading, renderLoade
                   maxWidth: 250,
                 }}
               >
-                <Icon color="primary" sx={{ mr: 1 }} />
-                <Typography variant="body1" noWrap>
+                <Icon color="primary" sx={{ mr: 1, mt: '2px' }} />
+                <Typography variant="body1">
                   {goal}
                 </Typography>
               </Box>
