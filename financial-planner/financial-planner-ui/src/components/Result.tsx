@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import api from '../api/axios';
-import { Box, Typography, Grid } from '@mui/material';
-import type { GoalAnalysis, LLMPicks } from '../types/resultsTypes';
-import SuggestedGoals from './SuggestedGoals';
-import LLMPicks from './LLMPicks';
-import GoalAnalysis from './GoalAnalysis';
+import { Typography, CircularProgress, Grid, Box } from '@mui/material';
 
+import GoalAnalysisCard from './GoalAnalysisCard';
+import GoalSuggestions from './SuggestedGoals';
+import type GoalAnalysis from './GoalAnalysis';
+import type { LLMPicks } from '../types/resultsTypes';
+import LLMPicksCard from './LLMPicks';
 
 const ResultsPage = () => {
   const location = useLocation();
@@ -43,7 +44,6 @@ const ResultsPage = () => {
       try {
         const res = await api.post('/analyze', formData);
         setGoalAnalysis(res.data || null);
-        console.log('Goal Analysis:', res.data);
         fetchLLMPicks();
       } catch (err) {
         console.error('Error fetching analysis:', err);
@@ -66,20 +66,41 @@ const ResultsPage = () => {
     fetchSuggestedGoals();
   }, [formData, navigate]);
 
+  const renderLoader = () => (
+    <Box display="flex" justifyContent="center" alignItems="center" p={4}>
+      <CircularProgress />
+    </Box>
+  );
+
   return (
     <Box p={4}>
       <Typography variant="h4" gutterBottom>
         Personalized Financial Plan
       </Typography>
+
       <Grid container spacing={3}>
         <Grid item xs={12} md={4}>
-          <SuggestedGoals goals={suggestedGoals} loading={loadingSuggestions} />
+          <GoalSuggestions
+            suggestedGoals={suggestedGoals}
+            loading={loadingSuggestions}
+            renderLoader={renderLoader}
+          />
         </Grid>
+
         <Grid item xs={12} md={4}>
-          <GoalAnalysis analysis={goalAnalysis} loading={loadingAnalysis} />
+          <GoalAnalysisCard
+            analysis={goalAnalysis}
+            loading={loadingAnalysis}
+            renderLoader={renderLoader}
+          />
         </Grid>
+
         <Grid item xs={12} md={4}>
-          <LLMPicks picks={llmPicks} loading={loadingLLM} />
+          <LLMPicksCard
+            picks={llmPicks}
+            loading={loadingLLM}
+            renderLoader={renderLoader}
+          />
         </Grid>
       </Grid>
     </Box>

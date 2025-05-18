@@ -4,10 +4,24 @@ export interface Allocation {
   commodities: number;
 }
 
+export interface GoalFeasibility {
+  name: string;
+  target: number;
+  horizon_months: number;
+  expected_return_annual: number;
+  projected_value: number;
+  feasible: boolean;
+  recommendation: {
+    suggested_sip: number;
+    extend_by_months: number;
+  };
+}
+
 export interface GoalAnalysis {
   monthly_surplus: number;
   emergency_fund_ok: boolean;
   ideal_emergency_fund: number;
+  goal_analysis: GoalFeasibility[];
   recommended_allocation: Allocation;
 }
 
