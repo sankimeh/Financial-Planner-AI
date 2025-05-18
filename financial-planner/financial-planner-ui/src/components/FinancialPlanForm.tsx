@@ -4,6 +4,7 @@ import BasicInfoSection from "./BasicInfoSection";
 import InsuranceSection from "./InsurancesSection";
 import LoanSection from "./LoansSection";
 import GoalSection from "./GoalsSection";
+import { useNavigate } from 'react-router-dom';
 
 type Loan = {
   type: string;
@@ -23,6 +24,7 @@ type Goal = {
 };
 
 const FinancialPlanForm: React.FC = () => {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     name: "",
     age: "",
@@ -131,7 +133,7 @@ const FinancialPlanForm: React.FC = () => {
       months_to_achieve: parseInt(goal.months_to_achieve) || 0,
       current_savings: parseFloat(goal.current_savings) || 0,
       sip: parseFloat(goal.sip) || 0,
-      priority: parseInt(goal.priority) || 0,
+      priority: goal.priority,
     }));
 
     const submitData = {
@@ -143,7 +145,7 @@ const FinancialPlanForm: React.FC = () => {
     console.log("Submitted data:", submitData);
     setSubmitted(true);
 
-    // TODO: send submitData to backend API
+    navigate('/results', { state: submitData });
   };
 
   return (

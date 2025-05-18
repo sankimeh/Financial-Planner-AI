@@ -9,10 +9,10 @@ class GoalSuggester:
 
     def suggest_goals(self) -> List[str]:
         suggested_goals = []
-
+        total_emi = sum(loan.installment for loan in self.user_data.loans)
         # 1. Emergency Fund Suggestion
-        if self.user_data.emergency_fund < 6 * self.user_data.expenses:
-            suggested_goals.append("Start an Emergency Fund")
+        if self.user_data.emergency_fund < 6 * (self.user_data.expenses + total_emi):
+            suggested_goals.append("Start/Increase Emergency Fund")
 
         # 2. Insurance Suggestion (for dependents)
         if self.user_data.dependents > 0 and not self.user_data.insurances:
