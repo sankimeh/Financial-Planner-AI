@@ -33,7 +33,6 @@ export interface PickItem {
 }
 
 export interface LLMPicks {
-  summary: string;
   equity_picks?: PickItem[];
   bond_picks?: PickItem[];
   commodity_picks?: PickItem[];

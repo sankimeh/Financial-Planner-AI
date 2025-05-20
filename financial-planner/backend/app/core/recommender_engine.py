@@ -1,10 +1,9 @@
 import os
 import json
+import requests
 
 from langchain_community.vectorstores import FAISS
 from langchain_community.embeddings import HuggingFaceEmbeddings
-import requests
-
 from app.llm.rag_recommender import build_financial_rag
 from app.models.user import User
 
@@ -13,9 +12,19 @@ from app.models.user import User
 def load_vector_store(index_dir="faiss_index"):
     if not os.path.exists(os.path.join(index_dir, "index.faiss")):
         print("⚠️ Index not found. Rebuilding...")
-        build_financial_rag()  # imports this or move it into a shared utils module
+        build_financial_rag()
     embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
     return FAISS.load_local(index_dir, embeddings, allow_dangerous_deserialization=True)
+
+
+# Normalize keys (e.g., "Equity Picks" -> "equity_picks")
+def normalize_keys(d):
+    def normalize_key(k): return k.lower().replace(" ", "_")
+    if isinstance(d, dict):
+        return {normalize_key(k): normalize_keys(v) for k, v in d.items()}
+    elif isinstance(d, list):
+        return [normalize_keys(i) for i in d]
+    return d
 
 
 # Query Ollama with context
@@ -67,7 +76,6 @@ Given the following user profile and current market outlook, recommend a persona
 Stick to the asset allocation ratios and provide recommendations as structured JSON output.
 
 🔍 Include:
-- Summary (user's situation + investment philosophy)
 - Equity picks: list of tickers with name, rationale, and time horizon ([Short-Term], [Mid-Term], [Long-Term])
 - Bond picks: same as above
 - Commodity picks: same as above
@@ -82,7 +90,6 @@ Stick to the asset allocation ratios and provide recommendations as structured J
 
 📦 RETURN OUTPUT IN JSON FORMAT AS:
 {{
-  "summary": "...",
   "equity_picks": [
     {{
       "ticker": "AAPL",
@@ -124,11 +131,16 @@ Only return the JSON — no extra explanation.
     if return_dict:
         try:
             json_start = full_output.find('{')
-            json_output = json.loads(full_output[json_start:])
-            return json_output
+            raw_output = json.loads(full_output[json_start:])
+
+            # Remove wrapper like "recommendations" and normalize keys
+            if isinstance(raw_output, dict) and "recommendations" in raw_output:
+                raw_output = raw_output["recommendations"]
+
+            cleaned = normalize_keys(raw_output)
+            return cleaned
         except Exception as e:
             print("⚠️ Error parsing JSON response:", e)
             return {"error": "Failed to parse LLM output", "raw": full_output}
     else:
         return full_output.strip()
-

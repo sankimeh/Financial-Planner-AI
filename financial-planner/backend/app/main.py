@@ -41,7 +41,7 @@ async def get_stock_recommendations(user: User):
         # Query Ollama for stock recommendations based on user's profile and allocation
         stock_recommendations = query_ollama_for_portfolio(user, allocation)
 
-        return {"summary": summary, "recommendations": stock_recommendations}
+        return {"recommendations": stock_recommendations}
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
