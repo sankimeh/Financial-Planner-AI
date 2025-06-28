@@ -1,8 +1,10 @@
 from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
 
 from app.core.goal_suggester import GoalSuggester
 from app.core.planner_service import PlannerService
 from app.core.recommender_engine import query_ollama_for_portfolio
+from app.llm.mcp_chatbot import run_chatbot
 from app.models.user import User
 
 app = FastAPI()
@@ -50,3 +52,14 @@ async def get_stock_recommendations(user: User):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
+
+
+class ChatRequest(BaseModel):
+    message: str
+    user_profile: dict
+    fund_query: str = ""
+
+@app.post("/chat")
+async def chat_endpoint(req: ChatRequest):
+    response = run_chatbot(req.message, req.user_profile, req.fund_query)
+    return {"response": response}
