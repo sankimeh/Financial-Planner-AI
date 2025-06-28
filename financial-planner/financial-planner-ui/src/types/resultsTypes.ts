@@ -11,9 +11,9 @@ export interface GoalFeasibility {
   expected_return_annual: number;
   projected_value: number;
   feasible: boolean;
-  recommendation: {
+  recommendation?: {
     suggested_sip: number;
-    extend_by_months: number;
+    extend_by_months: number | null;
   };
 }
 
@@ -23,6 +23,7 @@ export interface GoalAnalysis {
   ideal_emergency_fund: number;
   goal_analysis: GoalFeasibility[];
   recommended_allocation: Allocation;
+  allocation_explanation: string;
 }
 
 export interface PickItem {

@@ -7,7 +7,7 @@ import {
   Chip,
   Box,
   LinearProgress,
-  Stack
+  Stack,
 } from '@mui/material';
 import {
   PieChart,
@@ -15,8 +15,9 @@ import {
   Cell,
   Tooltip,
   ResponsiveContainer,
-  Legend
+  Legend,
 } from 'recharts';
+import ReactMarkdown from 'react-markdown';
 import type GoalAnalysis from './GoalAnalysis';
 
 interface Props {
@@ -46,17 +47,16 @@ const GoalAnalysisCard: React.FC<Props> = ({ analysis, loading, renderLoader }) 
   const allocationData = [
     { name: 'Equity', value: analysis.recommended_allocation.equity },
     { name: 'Bonds', value: analysis.recommended_allocation.bonds },
-    { name: 'Commodities', value: analysis.recommended_allocation.commodities }
+    { name: 'Commodities', value: analysis.recommended_allocation.commodities },
   ];
 
-  // Count of goals
   const goalsCount = analysis.goal_analysis.length;
 
   return (
     <Card>
       <CardContent>
         <Typography variant="h6" gutterBottom>
-          Goal Analysis & Portfolio
+          Goal Analysis & Portfolio Recommendation
         </Typography>
 
         <Typography variant="body1">
@@ -64,9 +64,9 @@ const GoalAnalysisCard: React.FC<Props> = ({ analysis, loading, renderLoader }) 
         </Typography>
 
         <Typography variant="body1">
-          <strong>Emergency Fund OK:</strong>{' '}
+          <strong>Emergency Fund Status:</strong>{' '}
           <Chip
-            label={analysis.emergency_fund_ok ? 'Yes' : 'No'}
+            label={analysis.emergency_fund_ok ? 'Sufficient' : 'Needs More'}
             color={analysis.emergency_fund_ok ? 'success' : 'warning'}
             size="small"
           />
@@ -79,7 +79,7 @@ const GoalAnalysisCard: React.FC<Props> = ({ analysis, loading, renderLoader }) 
         <Divider sx={{ my: 2 }} />
 
         <Typography variant="subtitle1" gutterBottom>
-          Recommended Allocation:
+          Recommended Portfolio Allocation
         </Typography>
 
         <Stack direction="row" spacing={2} mb={2}>
@@ -95,7 +95,6 @@ const GoalAnalysisCard: React.FC<Props> = ({ analysis, loading, renderLoader }) 
               dataKey="value"
               nameKey="name"
               outerRadius={80}
-              fill="#8884d8"
               label
             >
               {allocationData.map((entry, index) => (
@@ -107,13 +106,33 @@ const GoalAnalysisCard: React.FC<Props> = ({ analysis, loading, renderLoader }) 
           </PieChart>
         </ResponsiveContainer>
 
+        {/* 🔽 Allocation Explanation Markdown */}
+        {analysis.allocation_explanation && (
+          <>
+            <Divider sx={{ my: 2 }} />
+            <Typography variant="subtitle1" gutterBottom>
+              Allocation Rationale
+            </Typography>
+            <Box
+              sx={{
+                backgroundColor: '#f9f9f9',
+                p: 2,
+                borderRadius: 2,
+                fontSize: 14,
+                color: '#333',
+              }}
+            >
+              <ReactMarkdown>{analysis.allocation_explanation}</ReactMarkdown>
+            </Box>
+          </>
+        )}
+
         <Divider sx={{ my: 2 }} />
 
         <Typography variant="subtitle1" gutterBottom>
-          Goal Feasibility:
+          Goal Status
         </Typography>
 
-        {/* Container for goals with flex wrap */}
         <Box
           sx={{
             display: 'flex',
@@ -126,8 +145,6 @@ const GoalAnalysisCard: React.FC<Props> = ({ analysis, loading, renderLoader }) 
           {analysis.goal_analysis.map((goal, index) => {
             const progress = Math.min((goal.projected_value / goal.target) * 100, 100);
 
-            // Each goal box takes 48% width approx (50% minus gap)
-            // The last odd goal will be centered because justifyContent is center
             return (
               <Box
                 key={index}
@@ -140,10 +157,11 @@ const GoalAnalysisCard: React.FC<Props> = ({ analysis, loading, renderLoader }) 
                   boxSizing: 'border-box',
                 }}
               >
-                <Typography variant="h6">{goal.name}</Typography>
+                <Typography variant="h6" gutterBottom>{goal.name}</Typography>
+
                 <Stack direction="row" spacing={1} alignItems="center" mt={1}>
                   <Chip
-                    label={goal.feasible ? 'Feasible' : 'Needs Adjustment'}
+                    label={goal.feasible ? 'On Track' : 'Needs Attention'}
                     color={goal.feasible ? 'success' : 'error'}
                     size="small"
                   />
@@ -153,7 +171,7 @@ const GoalAnalysisCard: React.FC<Props> = ({ analysis, loading, renderLoader }) 
                   <strong>Target:</strong> {formatCurrency(goal.target)}
                 </Typography>
                 <Typography variant="body2">
-                  <strong>Projected Value:</strong> {formatCurrency(goal.projected_value)}
+                  <strong>Projected:</strong> {formatCurrency(goal.projected_value)}
                 </Typography>
 
                 <Box mt={1}>
@@ -165,30 +183,37 @@ const GoalAnalysisCard: React.FC<Props> = ({ analysis, loading, renderLoader }) 
                       borderRadius: 5,
                       backgroundColor: '#f0f0f0',
                       '& .MuiLinearProgress-bar': {
-                        backgroundColor: goal.feasible ? 'green' : 'orange'
-                      }
+                        backgroundColor: goal.feasible ? 'green' : 'orange',
+                      },
                     }}
                   />
-                  <Typography variant="caption">{progress.toFixed(1)}% of goal funded</Typography>
+                  <Typography variant="caption">{progress.toFixed(1)}% funded</Typography>
                 </Box>
 
                 <Stack direction="row" spacing={2} flexWrap="wrap" mt={1}>
-                  <Typography variant="body2" whiteSpace="nowrap" sx={{ flexShrink: 0 }}>
+                  <Typography variant="body2" whiteSpace="nowrap">
                     <strong>Horizon:</strong> {goal.horizon_months} months
                   </Typography>
-                  <Typography variant="body2" whiteSpace="nowrap" sx={{ flexShrink: 0 }}>
-                    <strong>Expected Return:</strong> {goal.expected_return_annual}%
+                  <Typography variant="body2" whiteSpace="nowrap">
+                    <strong>Return Rate:</strong> {goal.expected_return_annual}%
                   </Typography>
                 </Stack>
 
                 {!goal.feasible && (
-                  <Box mt={1}>
-                    <Typography variant="body2" color="textSecondary">
-                      <strong>Recommended SIP:</strong> {formatCurrency(goal.recommendation.suggested_sip)}
+                  <Box mt={2}>
+                    <Typography variant="subtitle2" gutterBottom>
+                      Suggestions to Meet Goal:
                     </Typography>
-                    <Typography variant="body2" color="textSecondary">
-                      <strong>Extend By:</strong> {goal.recommendation.extend_by_months} months
-                    </Typography>
+                    {goal.recommendation?.suggested_sip && (
+                      <Typography variant="body2" color="textSecondary">
+                        Increase SIP to <strong>{formatCurrency(goal.recommendation.suggested_sip)}</strong> per month.
+                      </Typography>
+                    )}
+                    {goal.recommendation?.extend_by_months && (
+                      <Typography variant="body2" color="textSecondary">
+                        Or extend goal by <strong>{goal.recommendation.extend_by_months} months</strong>.
+                      </Typography>
+                    )}
                   </Box>
                 )}
               </Box>

@@ -75,7 +75,7 @@ You are a financial advisor AI.
 Given the following user profile and current market outlook, recommend a personalized investment portfolio.
 Stick to the asset allocation ratios and provide recommendations as structured JSON output.
 
-🔍 Include:
+Include:
 - Equity picks: list of tickers with name, rationale, and time horizon ([Short-Term], [Mid-Term], [Long-Term])
 - Bond picks: same as above
 - Commodity picks: same as above
@@ -88,7 +88,7 @@ Stick to the asset allocation ratios and provide recommendations as structured J
 ### MARKET OUTLOOK
 {context_chunks}
 
-📦 RETURN OUTPUT IN JSON FORMAT AS:
+RETURN OUTPUT IN JSON FORMAT AS:
 {{
   "equity_picks": [
     {{

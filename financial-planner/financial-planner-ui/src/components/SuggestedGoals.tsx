@@ -1,10 +1,14 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Card,
   CardContent,
   Typography,
   Box,
+  IconButton,
+  Collapse,
+  Stack,
 } from '@mui/material';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 
 // MUI Icons
 import HealthAndSafetyIcon from '@mui/icons-material/HealthAndSafety';
@@ -20,8 +24,13 @@ import DoneAllIcon from '@mui/icons-material/DoneAll';
 import WarningIcon from '@mui/icons-material/Warning';
 import ChecklistIcon from '@mui/icons-material/Checklist';
 
+interface GoalSuggestion {
+  goal: string;
+  reason: string;
+}
+
 interface Props {
-  suggestedGoals: string[];
+  suggestedGoals: GoalSuggestion[];
   loading: boolean;
   renderLoader: () => JSX.Element;
 }
@@ -43,56 +52,71 @@ const getIconForGoal = (goal: string) => {
   return ChecklistIcon;
 };
 
-const GoalSuggestions: React.FC<Props> = ({ suggestedGoals, loading, renderLoader }) => (
-  <Card elevation={3} sx={{ borderRadius: 3, p: 2, width: '98%' }}>
-    <CardContent>
-      <Typography variant="h6" gutterBottom>
-        Suggested Goals
-      </Typography>
-      {loading ? (
-        renderLoader()
-      ) : suggestedGoals.length === 0 ? (
-        <Box mt={2}>
-          <Typography variant="body2" color="textSecondary">
-            No suggested goals found.
-          </Typography>
-        </Box>
-      ) : (
-        <Box
-          sx={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            gap: 2,
-          }}
-        >
-          {suggestedGoals.map((goal, index) => {
-            const Icon = getIconForGoal(goal);
-            return (
-              <Box
-                key={index}
-                sx={{
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  borderRadius: 2,
-                  bgcolor: 'background.paper',
-                  boxShadow: 1,
-                  px: 2,
-                  py: 1,
-                  minWidth: 150,
-                  maxWidth: 250,
-                }}
-              >
-                <Icon color="primary" sx={{ mr: 1, mt: '2px' }} />
-                <Typography variant="body1">
-                  {goal}
-                </Typography>
-              </Box>
-            );
-          })}
-        </Box>
-      )}
-    </CardContent>
-  </Card>
-);
+const GoalSuggestions: React.FC<Props> = ({ suggestedGoals, loading, renderLoader }) => {
+  const [openIndex, setOpenIndex] = useState<number | null>(null);
+
+  const toggleExplanation = (index: number) => {
+    setOpenIndex((prev) => (prev === index ? null : index));
+  };
+
+  return (
+    <Card elevation={3} sx={{ borderRadius: 3, p: 2, width: '98%' }}>
+      <CardContent>
+        <Typography variant="h6" gutterBottom>
+          Suggested Goals
+        </Typography>
+        {loading ? (
+          renderLoader()
+        ) : suggestedGoals.length === 0 ? (
+          <Box mt={2}>
+            <Typography variant="body2" color="textSecondary">
+              No suggested goals found.
+            </Typography>
+          </Box>
+        ) : (
+          <Stack spacing={2} mt={2}>
+            {suggestedGoals.map((item, index) => {
+              const Icon = getIconForGoal(item.goal);
+              const isOpen = openIndex === index;
+
+              return (
+                <Card
+                  key={index}
+                  elevation={1}
+                  sx={{
+                    borderRadius: 2,
+                    p: 2,
+                  }}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Icon color="primary" sx={{ mr: 1 }} />
+                    <Typography variant="body1" sx={{ flexGrow: 1 }}>
+                      {item.goal}
+                    </Typography>
+                    <IconButton
+                      onClick={() => toggleExplanation(index)}
+                      size="small"
+                      sx={{
+                        transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                        transition: 'transform 0.2s',
+                      }}
+                    >
+                      <ExpandMoreIcon />
+                    </IconButton>
+                  </Box>
+                  <Collapse in={isOpen} unmountOnExit>
+                    <Typography variant="body2" color="text.secondary" mt={1}>
+                      {item.reason}
+                    </Typography>
+                  </Collapse>
+                </Card>
+              );
+            })}
+          </Stack>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
 
 export default GoalSuggestions;

@@ -1,5 +1,8 @@
+import json
+import requests
 from math import pow
 from app.models.user import User
+
 
 class PlannerService:
 
@@ -18,25 +21,79 @@ class PlannerService:
         summary['ideal_emergency_fund'] = ideal_emergency
 
         # 3. Goal feasibility
-        goal_results = []
-        for goal in user.goals:
-            goal_result = self._check_goal_feasibility(goal)
-            goal_results.append(goal_result)
-        summary['goal_analysis'] = goal_results
+        summary['goal_analysis'] = [self._check_goal_feasibility(goal) for goal in user.goals]
 
         # 4. Asset Allocation
         allocation = self._calculate_asset_allocation(user)
         summary['recommended_allocation'] = allocation
 
+        # 5. LLM Explanation
+        try:
+            explanation = self._explain_allocation_with_llm(user, allocation)
+        except Exception as e:
+            explanation = "Explanation not available due to a system error."
+            print("LLM error:", e)
+        summary['allocation_explanation'] = explanation
+
         return summary
 
-    def _check_goal_feasibility(self, goal):
+    def _calculate_asset_allocation(self, user: User) -> dict:
+        base = {
+            'conservative': {'equity': 30, 'bonds': 60, 'commodities': 10},
+            'balanced': {'equity': 50, 'bonds': 40, 'commodities': 10},
+            'aggressive': {'equity': 70, 'bonds': 20, 'commodities': 10}
+        }
+
+        allocation = base.get(user.risk_profile.lower(), base['balanced']).copy()
+
+        # Age adjustment
+        age_limit = max(0, 110 - user.age)
+        if allocation['equity'] > age_limit:
+            shift = allocation['equity'] - age_limit
+            allocation['equity'] -= shift
+            allocation['bonds'] += shift
+
+        # Emergency fund adjustment
+        required_emergency = 6 * (user.expenses + sum(l.installment for l in user.loans))
+        deficit_ratio = max(0, (required_emergency - user.emergency_fund) / required_emergency)
+        if deficit_ratio > 0:
+            equity_cut = round(deficit_ratio * 20)
+            allocation['equity'] = max(10, allocation['equity'] - equity_cut)
+            allocation['bonds'] = min(90, allocation['bonds'] + equity_cut)
+
+        # Surplus adjustment
+        total_emi = sum(l.installment for l in user.loans)
+        surplus = user.income - user.expenses - total_emi
+        surplus_ratio = surplus / user.income
+        if surplus_ratio < 0.1:
+            allocation['equity'] = max(10, allocation['equity'] - 10)
+            allocation['bonds'] += 10
+        elif surplus_ratio > 0.3:
+            allocation['equity'] = min(90, allocation['equity'] + 10)
+            allocation['bonds'] = max(0, allocation['bonds'] - 10)
+
+        # Goal horizon analysis
+        short_term_goals = [g for g in user.goals if g.months_to_achieve <= 24]
+        long_term_goals = [g for g in user.goals if g.months_to_achieve >= 60]
+        if len(short_term_goals) > len(long_term_goals):
+            allocation['bonds'] = min(90, allocation['bonds'] + 10)
+            allocation['equity'] = max(10, allocation['equity'] - 10)
+
+        # Normalize to 100%
+        total = sum(allocation.values())
+        if total != 100:
+            diff = 100 - total
+            allocation['commodities'] += diff
+
+        return allocation
+
+    def _check_goal_feasibility(self, goal) -> dict:
         n = goal.months_to_achieve
         P = goal.current_savings
         SIP = goal.sip
         target = goal.target_amount
 
-        # 1. Dynamic return rate based on horizon
+        # Return rate
         if n <= 36:
             r_annual = 0.06
         elif 36 < n <= 84:
@@ -45,10 +102,8 @@ class PlannerService:
             r_annual = 0.10
         r_monthly = r_annual / 12
 
-        # 2. Future Value formula
+        # Future value
         future_value = P * pow(1 + r_monthly, n) + SIP * (((pow(1 + r_monthly, n) - 1) / r_monthly) * (1 + r_monthly))
-
-        # 3. Feasibility
         feasible = future_value >= target
 
         result = {
@@ -60,17 +115,16 @@ class PlannerService:
             "feasible": feasible
         }
 
-        # 4. Recommendations if not feasible
         if not feasible:
-            # Recommend higher SIP
+            # Suggest higher SIP
             remaining = target - (P * pow(1 + r_monthly, n))
             sip_needed = remaining / (((pow(1 + r_monthly, n) - 1) / r_monthly) * (1 + r_monthly))
             sip_needed = round(sip_needed, 2)
 
-            # Recommend extended time for same SIP
+            # Suggest extended time
             extra_months = 0
             fv = future_value
-            while fv < target and extra_months < 120:  # Cap to 10 more years
+            while fv < target and extra_months < 120:
                 extra_months += 1
                 total_months = n + extra_months
                 fv = P * pow(1 + r_monthly, total_months) + SIP * (
@@ -83,52 +137,44 @@ class PlannerService:
 
         return result
 
-    def _calculate_asset_allocation(self, user: User):
-        base = {
-            'conservative': {'equity': 30, 'bonds': 60, 'commodities': 10},
-            'balanced': {'equity': 50, 'bonds': 40, 'commodities': 10},
-            'aggressive': {'equity': 70, 'bonds': 20, 'commodities': 10}
-        }
+    def _explain_allocation_with_llm(self, user: User, allocation: dict) -> str:
+        prompt = f"""
+You are a financial advisor. Based on the user's profile and the following data, explain in simple, friendly terms why the asset allocation is:
+Equity: {allocation['equity']}%, Bonds: {allocation['bonds']}%, Commodities: {allocation['commodities']}%.
 
-        allocation = base.get(user.risk_profile.lower(), base['balanced']).copy()
+User Profile:
+- Age: {user.age}
+- Risk Profile: {user.risk_profile}
+- Monthly Surplus: {user.income - user.expenses - sum(l.installment for l in user.loans)}
+- Emergency Fund: {user.emergency_fund}
+- Ideal Emergency Fund: {6 * (user.expenses + sum(l.installment for l in user.loans))}
+- Goals: {[(g.name, g.months_to_achieve) for g in user.goals]}
 
-        # 1. Age adjustment
-        age_limit = max(0, 110 - user.age)
-        if allocation['equity'] > age_limit:
-            shift = allocation['equity'] - age_limit
-            allocation['equity'] -= shift
-            allocation['bonds'] += shift
+Structure the explanation as:
+1. A summary sentence
+2. Bullet points explaining the reasoning
+3. A closing suggestion or reassurance
 
-        # 2. Emergency fund adjustment
-        required_emergency = 6 * (user.expenses + sum(l.installment for l in user.loans))
-        deficit_ratio = max(0, (required_emergency - user.emergency_fund) / required_emergency)
-        if deficit_ratio > 0:
-            equity_cut = round(deficit_ratio * 20)  # Max 20% reduction
-            allocation['equity'] = max(10, allocation['equity'] - equity_cut)
-            allocation['bonds'] = min(90, allocation['bonds'] + equity_cut)
+Avoid financial jargon. Be friendly and clear.
+"""
 
-        # 3. Surplus adjustment
-        total_emi = sum(l.installment for l in user.loans)
-        surplus = user.income - user.expenses - total_emi
-        surplus_ratio = surplus / user.income
-        if surplus_ratio < 0.1:
-            allocation['equity'] = max(10, allocation['equity'] - 10)
-            allocation['bonds'] += 10
-        elif surplus_ratio > 0.3:
-            allocation['equity'] = min(90, allocation['equity'] + 10)
-            allocation['bonds'] = max(0, allocation['bonds'] - 10)
+        response = requests.post(
+            "http://localhost:11434/api/generate",
+            json={
+                "model": "llama3.2:latest",
+                "prompt": prompt,
+                "stream": True
+            },
+            stream=True
+        )
 
-        # 4. Goal horizon analysis
-        short_term_goals = [g for g in user.goals if g.months_to_achieve <= 24]
-        long_term_goals = [g for g in user.goals if g.months_to_achieve >= 60]
-        if len(short_term_goals) > len(long_term_goals):
-            allocation['bonds'] = min(90, allocation['bonds'] + 10)
-            allocation['equity'] = max(10, allocation['equity'] - 10)
+        output = ""
+        for line in response.iter_lines():
+            if line:
+                try:
+                    data = json.loads(line.decode('utf-8'))
+                    output += data.get("response", "")
+                except Exception as e:
+                    print("Error decoding line:", e)
 
-        # Normalize to sum 100
-        total = sum(allocation.values())
-        if total != 100:
-            diff = 100 - total
-            allocation['commodities'] += diff
-
-        return allocation
+        return output.strip()

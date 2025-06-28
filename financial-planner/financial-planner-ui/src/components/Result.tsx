@@ -21,8 +21,7 @@ const ResultsPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const formData = location.state;
-
-  const [suggestedGoals, setSuggestedGoals] = useState<string[]>([]);
+  const [suggestedGoals, setSuggestedGoals] = useState<{ goal: string; reason: string }[]>([]);
   const [goalAnalysis, setGoalAnalysis] = useState<GoalAnalysis | null>(null);
   const [llmPicks, setLlmPicks] = useState<LLMPicks | null>(null);
 
@@ -39,14 +38,18 @@ const ResultsPage = () => {
     const fetchSuggestedGoals = async () => {
       try {
         const res = await api.post('/suggest-goals/', formData);
-        setSuggestedGoals(res.data.suggested_goals || []);
+        const suggested = res.data.suggested_goals || [];
+
+        // Each item has shape: { goal: string, reason: string }
+        setSuggestedGoals(suggested);
+
         fetchGoalAnalysis();
       } catch (err) {
         console.error('Error fetching suggested goals:', err);
       } finally {
-        setLoadingSuggestions(false);
+      setLoadingSuggestions(false);
       }
-    };
+  };
 
     const fetchGoalAnalysis = async () => {
       try {
@@ -73,6 +76,10 @@ const ResultsPage = () => {
 
     fetchSuggestedGoals();
   }, [formData, navigate]);
+
+  useEffect(() => {
+    console.log("Analysis data:", goalAnalysis);}
+  , [goalAnalysis]);
 
   const renderLoader = () => (
     <Box display="flex" justifyContent="center" alignItems="center" p={4}>

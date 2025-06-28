@@ -12,7 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],  # your React app's origin
+    allow_origins=["*"],  # your React app's origin
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -29,7 +29,12 @@ def analyze_user(user: User):
 async def suggest_goals(user_data: User):
     suggester = GoalSuggester(user_data)
     suggested_goals = suggester.suggest_goals()
-    return {"suggested_goals": suggested_goals}
+    return {
+        "suggested_goals": [
+            {"goal": goal, "reason": reason}
+            for goal, reason in suggested_goals
+        ]
+    }
 
 
 @app.post("/get_stock_recommendations/")
