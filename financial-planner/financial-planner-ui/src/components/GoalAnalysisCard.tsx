@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { type JSX } from "react";
 import {
   Card,
   CardContent,
@@ -8,7 +8,10 @@ import {
   Box,
   LinearProgress,
   Stack,
-} from '@mui/material';
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
+} from "@mui/material";
 import {
   PieChart,
   Pie,
@@ -16,9 +19,8 @@ import {
   Tooltip,
   ResponsiveContainer,
   Legend,
-} from 'recharts';
-import ReactMarkdown from 'react-markdown';
-import type GoalAnalysis from './GoalAnalysis';
+} from "recharts";
+import type GoalAnalysis from "./GoalAnalysis";
 
 interface Props {
   analysis: GoalAnalysis | null;
@@ -26,12 +28,18 @@ interface Props {
   renderLoader: () => JSX.Element;
 }
 
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+
 const formatCurrency = (num: number) =>
-  `₹${num.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
+  `₹${num.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
 
-const COLORS = ['#1976d2', '#9c27b0', '#ff9800']; // Equity, Bonds, Commodities
+const COLORS = ["#1976d2", "#9c27b0", "#ff9800"]; // Equity, Bonds, Commodities
 
-const GoalAnalysisCard: React.FC<Props> = ({ analysis, loading, renderLoader }) => {
+const GoalAnalysisCard: React.FC<Props> = ({
+  analysis,
+  loading,
+  renderLoader,
+}) => {
   if (loading) return renderLoader();
 
   if (!analysis) {
@@ -45,9 +53,9 @@ const GoalAnalysisCard: React.FC<Props> = ({ analysis, loading, renderLoader }) 
   }
 
   const allocationData = [
-    { name: 'Equity', value: analysis.recommended_allocation.equity },
-    { name: 'Bonds', value: analysis.recommended_allocation.bonds },
-    { name: 'Commodities', value: analysis.recommended_allocation.commodities },
+    { name: "Equity", value: analysis.recommended_allocation.equity },
+    { name: "Bonds", value: analysis.recommended_allocation.bonds },
+    { name: "Commodities", value: analysis.recommended_allocation.commodities },
   ];
 
   const goalsCount = analysis.goal_analysis.length;
@@ -60,20 +68,22 @@ const GoalAnalysisCard: React.FC<Props> = ({ analysis, loading, renderLoader }) 
         </Typography>
 
         <Typography variant="body1">
-          <strong>Monthly Surplus:</strong> {formatCurrency(analysis.monthly_surplus)}
+          <strong>Monthly Surplus:</strong>{" "}
+          {formatCurrency(analysis.monthly_surplus)}
         </Typography>
 
         <Typography variant="body1">
-          <strong>Emergency Fund Status:</strong>{' '}
+          <strong>Emergency Fund Status:</strong>{" "}
           <Chip
-            label={analysis.emergency_fund_ok ? 'Sufficient' : 'Needs More'}
-            color={analysis.emergency_fund_ok ? 'success' : 'warning'}
+            label={analysis.emergency_fund_ok ? "Sufficient" : "Needs More"}
+            color={analysis.emergency_fund_ok ? "success" : "warning"}
             size="small"
           />
         </Typography>
 
         <Typography variant="body1" gutterBottom>
-          <strong>Ideal Emergency Fund:</strong> {formatCurrency(analysis.ideal_emergency_fund)}
+          <strong>Ideal Emergency Fund:</strong>{" "}
+          {formatCurrency(analysis.ideal_emergency_fund)}
         </Typography>
 
         <Divider sx={{ my: 2 }} />
@@ -83,9 +93,18 @@ const GoalAnalysisCard: React.FC<Props> = ({ analysis, loading, renderLoader }) 
         </Typography>
 
         <Stack direction="row" spacing={2} mb={2}>
-          <Chip label={`Equity: ${analysis.recommended_allocation.equity}%`} color="primary" />
-          <Chip label={`Bonds: ${analysis.recommended_allocation.bonds}%`} color="secondary" />
-          <Chip label={`Commodities: ${analysis.recommended_allocation.commodities}%`} color="warning" />
+          <Chip
+            label={`Equity: ${analysis.recommended_allocation.equity}%`}
+            color="primary"
+          />
+          <Chip
+            label={`Bonds: ${analysis.recommended_allocation.bonds}%`}
+            color="secondary"
+          />
+          <Chip
+            label={`Commodities: ${analysis.recommended_allocation.commodities}%`}
+            color="warning"
+          />
         </Stack>
 
         <ResponsiveContainer width="100%" height={250}>
@@ -106,27 +125,32 @@ const GoalAnalysisCard: React.FC<Props> = ({ analysis, loading, renderLoader }) 
           </PieChart>
         </ResponsiveContainer>
 
-        {/* 🔽 Allocation Explanation Markdown */}
+        {/* 🔽 Allocation Explanation Plain Text */}
         {analysis.allocation_explanation && (
           <>
             <Divider sx={{ my: 2 }} />
-            <Typography variant="subtitle1" gutterBottom>
-              Allocation Rationale
-            </Typography>
-            <Box
-              sx={{
-                backgroundColor: '#f9f9f9',
-                p: 2,
-                borderRadius: 2,
-                fontSize: 14,
-                color: '#333',
-              }}
-            >
-              <ReactMarkdown>{analysis.allocation_explanation}</ReactMarkdown>
-            </Box>
+            <Accordion>
+              <AccordionSummary
+                expandIcon={<ExpandMoreIcon />}
+                aria-controls="allocation-content"
+                id="allocation-header"
+              >
+                <Typography variant="subtitle1">
+                  Allocation Rationale
+                </Typography>
+              </AccordionSummary>
+              <AccordionDetails>
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{ whiteSpace: "pre-line" }}
+                >
+                  {analysis.allocation_explanation}
+                </Typography>
+              </AccordionDetails>
+            </Accordion>
           </>
         )}
-
         <Divider sx={{ my: 2 }} />
 
         <Typography variant="subtitle1" gutterBottom>
@@ -135,34 +159,39 @@ const GoalAnalysisCard: React.FC<Props> = ({ analysis, loading, renderLoader }) 
 
         <Box
           sx={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            maxWidth: '100%',
-            justifyContent: goalsCount % 2 === 1 ? 'center' : 'flex-start',
+            display: "flex",
+            flexWrap: "wrap",
+            maxWidth: "100%",
+            justifyContent: goalsCount % 2 === 1 ? "center" : "flex-start",
             gap: 2,
           }}
         >
           {analysis.goal_analysis.map((goal, index) => {
-            const progress = Math.min((goal.projected_value / goal.target) * 100, 100);
+            const progress = Math.min(
+              (goal.projected_value / goal.target) * 100,
+              100
+            );
 
             return (
               <Box
                 key={index}
                 sx={{
-                  width: '48%',
+                  width: "48%",
                   minWidth: 280,
-                  border: '1px solid #ddd',
+                  border: "1px solid #ddd",
                   borderRadius: 2,
                   p: 2,
-                  boxSizing: 'border-box',
+                  boxSizing: "border-box",
                 }}
               >
-                <Typography variant="h6" gutterBottom>{goal.name}</Typography>
+                <Typography variant="h6" gutterBottom>
+                  {goal.name}
+                </Typography>
 
                 <Stack direction="row" spacing={1} alignItems="center" mt={1}>
                   <Chip
-                    label={goal.feasible ? 'On Track' : 'Needs Attention'}
-                    color={goal.feasible ? 'success' : 'error'}
+                    label={goal.feasible ? "On Track" : "Needs Attention"}
+                    color={goal.feasible ? "success" : "error"}
                     size="small"
                   />
                 </Stack>
@@ -171,7 +200,8 @@ const GoalAnalysisCard: React.FC<Props> = ({ analysis, loading, renderLoader }) 
                   <strong>Target:</strong> {formatCurrency(goal.target)}
                 </Typography>
                 <Typography variant="body2">
-                  <strong>Projected:</strong> {formatCurrency(goal.projected_value)}
+                  <strong>Projected:</strong>{" "}
+                  {formatCurrency(goal.projected_value)}
                 </Typography>
 
                 <Box mt={1}>
@@ -181,13 +211,15 @@ const GoalAnalysisCard: React.FC<Props> = ({ analysis, loading, renderLoader }) 
                     sx={{
                       height: 10,
                       borderRadius: 5,
-                      backgroundColor: '#f0f0f0',
-                      '& .MuiLinearProgress-bar': {
-                        backgroundColor: goal.feasible ? 'green' : 'orange',
+                      backgroundColor: "#f0f0f0",
+                      "& .MuiLinearProgress-bar": {
+                        backgroundColor: goal.feasible ? "green" : "orange",
                       },
                     }}
                   />
-                  <Typography variant="caption">{progress.toFixed(1)}% funded</Typography>
+                  <Typography variant="caption">
+                    {progress.toFixed(1)}% funded
+                  </Typography>
                 </Box>
 
                 <Stack direction="row" spacing={2} flexWrap="wrap" mt={1}>
@@ -206,12 +238,20 @@ const GoalAnalysisCard: React.FC<Props> = ({ analysis, loading, renderLoader }) 
                     </Typography>
                     {goal.recommendation?.suggested_sip && (
                       <Typography variant="body2" color="textSecondary">
-                        Increase SIP to <strong>{formatCurrency(goal.recommendation.suggested_sip)}</strong> per month.
+                        Increase SIP to{" "}
+                        <strong>
+                          {formatCurrency(goal.recommendation.suggested_sip)}
+                        </strong>{" "}
+                        per month.
                       </Typography>
                     )}
                     {goal.recommendation?.extend_by_months && (
                       <Typography variant="body2" color="textSecondary">
-                        Or extend goal by <strong>{goal.recommendation.extend_by_months} months</strong>.
+                        Or extend goal by{" "}
+                        <strong>
+                          {goal.recommendation.extend_by_months} months
+                        </strong>
+                        .
                       </Typography>
                     )}
                   </Box>

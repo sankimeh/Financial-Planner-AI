@@ -137,26 +137,61 @@ class PlannerService:
 
         return result
 
+    import json
+    import requests
+
     def _explain_allocation_with_llm(self, user: User, allocation: dict) -> str:
+        # Calculate derived fields
+        monthly_surplus = user.income - user.expenses - sum(l.installment for l in user.loans)
+        ideal_emergency_fund = 6 * (user.expenses + sum(l.installment for l in user.loans))
+
+        # Prepare prompt with strict structure and hallucination control
         prompt = f"""
-You are a financial advisor. Based on the user's profile and the following data, explain in simple, friendly terms why the asset allocation is:
-Equity: {allocation['equity']}%, Bonds: {allocation['bonds']}%, Commodities: {allocation['commodities']}%.
+    You are a financial advisor.
 
-User Profile:
-- Age: {user.age}
-- Risk Profile: {user.risk_profile}
-- Monthly Surplus: {user.income - user.expenses - sum(l.installment for l in user.loans)}
-- Emergency Fund: {user.emergency_fund}
-- Ideal Emergency Fund: {6 * (user.expenses + sum(l.installment for l in user.loans))}
-- Goals: {[(g.name, g.months_to_achieve) for g in user.goals]}
+    Based on the user's profile and allocation below, write a simple, clear explanation in plain text. Do not assume any fixed investment amount (like ₹10 lakhs). Use only the user's real data. Avoid any exaggeration or assumptions.
 
-Structure the explanation as:
-1. A summary sentence
-2. Bullet points explaining the reasoning
-3. A closing suggestion or reassurance
+    User Profile:
+    - Age: {user.age}
+    - Risk Profile: {user.risk_profile}
+    - Monthly Surplus: ₹{monthly_surplus}
+    - Emergency Fund: ₹{user.emergency_fund}
+    - Ideal Emergency Fund: ₹{ideal_emergency_fund}
+    - Goals: {[(g.name, g.months_to_achieve) for g in user.goals]}
 
-Avoid financial jargon. Be friendly and clear.
-"""
+    Recommended Allocation:
+    - Equity: {allocation['equity']}%
+    - Bonds: {allocation['bonds']}%
+    - Commodities: {allocation['commodities']}%
+
+    Structure the explanation like this:
+
+    Summary:
+    A one-sentence summary of the asset mix strategy.
+
+    Equity:
+    • Reason 1
+    • Reason 2
+    • Reason 3
+
+    Bonds:
+    • Reason 1
+    • Reason 2
+    • Reason 3
+
+    Commodities:
+    • Reason 1
+    • Reason 2
+    • Reason 3
+
+    Suggestion:
+    One friendly line of advice based on their profile and goals.
+
+    Rules:
+    - Do not invent numbers (like “invest ₹10L” or “save ₹5L/month”).
+    - Be friendly, professional, and avoid financial jargon.
+    - Output plain text only (no Markdown).
+    """
 
         response = requests.post(
             "http://localhost:11434/api/generate",
@@ -168,13 +203,17 @@ Avoid financial jargon. Be friendly and clear.
             stream=True
         )
 
-        output = ""
+        # Stream and assemble response
+        output_lines = []
         for line in response.iter_lines():
-            if line:
-                try:
-                    data = json.loads(line.decode('utf-8'))
-                    output += data.get("response", "")
-                except Exception as e:
-                    print("Error decoding line:", e)
+            if not line:
+                continue
+            try:
+                data = json.loads(line.decode('utf-8'))
+                chunk = data.get("response", "")
+                if chunk:
+                    output_lines.append(chunk)
+            except json.JSONDecodeError:
+                continue
 
-        return output.strip()
+        return "".join(output_lines).strip()
