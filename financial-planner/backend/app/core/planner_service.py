@@ -137,9 +137,6 @@ class PlannerService:
 
         return result
 
-    import json
-    import requests
-
     def _explain_allocation_with_llm(self, user: User, allocation: dict) -> str:
         # Calculate derived fields
         monthly_surplus = user.income - user.expenses - sum(l.installment for l in user.loans)
@@ -147,51 +144,62 @@ class PlannerService:
 
         # Prepare prompt with strict structure and hallucination control
         prompt = f"""
-    You are a financial advisor.
+        You are an intelligent and cautious financial advisor. Given the user’s actual financial data below, write a clear, concise rationale for their asset allocation.
 
-    Based on the user's profile and allocation below, write a simple, clear explanation in plain text. Do not assume any fixed investment amount (like ₹10 lakhs). Use only the user's real data. Avoid any exaggeration or assumptions.
+        DO NOT make up numbers, investment amounts, or generic filler advice. Only explain based on the data provided.
 
-    User Profile:
-    - Age: {user.age}
-    - Risk Profile: {user.risk_profile}
-    - Monthly Surplus: ₹{monthly_surplus}
-    - Emergency Fund: ₹{user.emergency_fund}
-    - Ideal Emergency Fund: ₹{ideal_emergency_fund}
-    - Goals: {[(g.name, g.months_to_achieve) for g in user.goals]}
+        User Profile:
 
-    Recommended Allocation:
-    - Equity: {allocation['equity']}%
-    - Bonds: {allocation['bonds']}%
-    - Commodities: {allocation['commodities']}%
+        Age: {user.age}
 
-    Structure the explanation like this:
+        Risk Profile: {user.risk_profile}
 
-    Summary:
-    A one-sentence summary of the asset mix strategy.
+        Monthly Surplus: ₹{monthly_surplus}
 
-    Equity:
-    • Reason 1
-    • Reason 2
-    • Reason 3
+        Emergency Fund: ₹{user.emergency_fund}
 
-    Bonds:
-    • Reason 1
-    • Reason 2
-    • Reason 3
+        Ideal Emergency Fund: ₹{ideal_emergency_fund}
 
-    Commodities:
-    • Reason 1
-    • Reason 2
-    • Reason 3
+        Goals: {[(g.name, g.months_to_achieve) for g in user.goals]}
 
-    Suggestion:
-    One friendly line of advice based on their profile and goals.
+        Recommended Allocation:
 
-    Rules:
-    - Do not invent numbers (like “invest ₹10L” or “save ₹5L/month”).
-    - Be friendly, professional, and avoid financial jargon.
-    - Output plain text only (no Markdown).
-    """
+        Equity: {allocation['equity']}%
+
+        Bonds: {allocation['bonds']}%
+
+        Commodities: {allocation['commodities']}%
+
+        Instructions:
+        Follow this structure exactly. Do NOT add investment amount assumptions or general market statements. Tie every point to the user profile.
+
+        Summary:
+        One-line summary of the risk-return balance strategy behind this mix.
+
+        Equity (80%):
+        • Use the user’s age, risk profile, and goal time horizon to explain the high equity exposure.
+        • Do NOT say “equities have historically performed well”. Be user-specific.
+        • Use short, clear sentences. No jargon.
+
+        Bonds (10%):
+        • Explain how bonds help balance risk in this specific context.
+        • Relate to emergency fund and monthly surplus if relevant.
+
+        Commodities (10%):
+        • Tie commodity exposure to diversification for this user's profile.
+        • Avoid vague macro claims like “economic uncertainty”.
+
+        Suggestion:
+        One friendly and specific suggestion. Examples:
+
+        “Since you have an aggressive profile and short-term goals, review your portfolio quarterly.”
+
+        “Maintain your emergency fund and avoid over-leveraging despite high surplus.”
+
+        Tone: Friendly, human, professional.
+        Return: Plain text only. No Markdown or emojis.
+
+        """
 
         response = requests.post(
             "http://localhost:11434/api/generate",
